@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>لوحة تحكم التاجر — VISION collection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+  <!-- Admin Auth Lock Screen (Password: vis2000is) -->
+  <div id="admin-auth-lock" class="admin-auth-overlay" style="display:none;">
+    <div class="admin-auth-box">
+      <div class="admin-auth-icon">🔒</div>
+      <img src="../images/logo.jpg" alt="VISION Logo" class="admin-auth-logo">
+      <h2>منطقة الإدارة المحمية</h2>
+      <p>يرجى إدخال كود الدخول الخاص بالتاجر للمتابعة</p>
+      <form id="admin-auth-form" onsubmit="handleAdminLogin(event)">
+        <div class="auth-input-group">
+          <input type="password" id="admin-passcode" placeholder="أدخل الكود السري..." autocomplete="current-password" required>
+          <button type="button" class="btn-toggle-pass" onclick="togglePasscodeVisibility()" title="إظهار/إخفاء الكود">👁️</button>
+        </div>
+        <p id="auth-error-msg" class="auth-error-msg"></p>
+        <button type="submit" class="btn-auth-submit">دخول إلى لوحة التحكم 🚀</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-container">
+    
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="brand-section">
+        <img src="../images/logo.jpg" alt="VISION Logo" class="brand-logo">
+        <div class="brand-title">
+          <h1>VISION CONTROL</h1>
+          <span>لوحة تحكم التاجر وإدارة معروضات الساعات الرقمية</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="status-pill" id="storefront-status-pill">المعروض في الواجهة: ... / 3</span>
+        <a href="../orders.html" class="btn-preview">
+          <span>📦</span> <span>الطلبات</span>
+        </a>
+        <a href="../index.html" target="_blank" class="btn-preview">
+          <span>👁️</span> <span>معاينة واجهة الزبائن</span>
+        </a>
+        <button type="button" class="btn-preview" onclick="adminLogout()" title="تسجيل الخروج">
+          <span>🚪</span> <span>خروج</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Admin Content Grid -->
+    <main class="admin-grid">
+
+      <!-- Column 1: Add New Post -->
+      <section class="panel">
+        <div class="panel-title">
+          <h2><span>➕</span> إضافة منشور جديد</h2>
+          <span class="badge-count">ساعة / منتج جديد</span>
+        </div>
+
+        <form id="new-post-form">
+          <div class="form-group">
+            <label for="post-title">اسم المنشور / الساعة <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="post-title" placeholder="مثال: VISION Sabrina Carbon Edition" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="post-price">السعر بالدولار ($)</label>
+              <input type="number" id="post-price" placeholder="مثال: 780" step="any">
+            </div>
+            <div class="form-group">
+              <label for="post-tag">التصنيف أو الشارة</label>
+              <input type="text" id="post-tag" placeholder="مثال: Retro digi أو New" value="Retro digi">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="post-desc">الوصف والمواصفات</label>
+            <textarea id="post-desc" placeholder="اكتب وصفاً جذاباً للساعة، مميزات الشاشة الرقمية، خامة الفولاذ، مقاومة الماء..."></textarea>
+          </div>
+
+          <!-- Media Manager Section -->
+          <div class="form-group">
+            <label>صور وفيديوهات المنشور <span style="color:var(--danger)">*</span></label>
+            <div class="media-manager-box">
+              <div class="media-actions-bar">
+                <button type="button" class="btn-secondary" id="btn-open-picker">
+                  <span>🖼️</span> <span>اختر من صور الساعات (14 صورة)</span>
+                </button>
+                <label class="btn-secondary" style="cursor:pointer;margin:0;">
+                  <span>📁</span> <span>رفع من الجهاز</span>
+                  <input type="file" id="file-upload-input" accept="image/*,video/*" multiple style="display:none;">
+                </label>
+              </div>
+
+              <!-- URL Input Option -->
+              <div class="url-input-group">
+                <input type="url" id="media-url-input" placeholder="أو الصق رابط صورة / فيديو مباشر...">
+                <select id="media-type-select">
+                  <option value="image">صورة</option>
+                  <option value="video">فيديو</option>
+                </select>
+                <button type="button" class="btn-add-url" id="btn-add-url">إضافة</button>
+              </div>
+
+              <!-- Media items preview container -->
+              <div class="media-items-list" id="new-media-list">
+                <span style="color:var(--text-muted);font-size:12px;">لم يتم إضافة وسائط بعد.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Storefront Max-3 Limit Box -->
+          <div class="limit-box">
+            <div class="limit-box-info">
+              <h4>عرض في الواجهة الرئيسية للزبائن</h4>
+              <p>يسمح بعرض 3 منشورات كحد أقصى في الواجهة في نفس الوقت.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="post-is-active" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn-primary" id="btn-submit-post">
+            <span>🚀</span> <span>نشر المنشور في المتجر</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Column 2: Manage Existing Posts -->
+      <section class="panel">
+        <div class="panel-title">
+          <h2><span>📦</span> المنشورات الحالية</h2>
+          <span class="badge-count" id="total-posts-count">0 منشور</span>
+        </div>
+
+        <div class="posts-list" id="posts-list">
+          <div class="empty-state">
+            <span>⏳</span>
+            جاري تحميل المنشورات...
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ==========================================================
+       Photo Picker Modal (Choose from 14 watch photos)
+       ========================================================== -->
+  <div class="modal-overlay" id="photo-picker-modal">
+    <div class="modal-content">
+      <button type="button" class="modal-close-btn" onclick="closePhotoPicker()">✕</button>
+      <h3 style="font-family:'Unbounded';font-size:18px;margin-bottom:8px;">اختر من صور الساعات المتوفرة</h3>
+      <p style="color:var(--text-muted);font-size:13px;">انقر على الصور التي ترغب في تضمينها داخل هذا المنشور (يمكنك اختيار عدة صور):</p>
+      
+      <div class="photo-picker-grid" id="photo-picker-grid">
+        <!-- Rendered by js/admin.js -->
+      </div>
+
+      <div style="margin-top:24px;display:flex;gap:12px;justify-content:flex-end;">
+        <button type="button" class="btn-secondary" onclick="closePhotoPicker()">إلغاء</button>
+        <button type="button" class="btn-primary" style="width:auto;padding:10px 24px;" id="btn-confirm-picker">
+          تأكيد إضافة الصور المحددة
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Edit Post Modal
+       ========================================================== -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-content">
+      <button type="button" class="modal-close-btn" onclick="closeEditModal()">✕</button>
+      <h3 style="font-family:'Unbounded';font-size:18px;margin-bottom:20px;">تعديل المنشور</h3>
+
+      <form id="edit-post-form">
+        <div class="form-group">
+          <label for="edit-post-title">اسم المنشور / الساعة <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="edit-post-title" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-post-price">السعر بالدولار ($)</label>
+            <input type="number" id="edit-post-price" step="any">
+          </div>
+          <div class="form-group">
+            <label for="edit-post-tag">التصنيف</label>
+            <input type="text" id="edit-post-tag">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-post-desc">الوصف</label>
+          <textarea id="edit-post-desc"></textarea>
+        </div>
+
+        <!-- Edit Media Manager -->
+        <div class="form-group">
+          <label>الصور والفيديوهات</label>
+          <div class="media-manager-box">
+            <div class="media-actions-bar">
+              <button type="button" class="btn-secondary" id="btn-open-edit-picker">
+                <span>🖼️</span> <span>إضافة صور من المجلد</span>
+              </button>
+            </div>
+            <div class="url-input-group">
+              <input type="url" id="edit-media-url-input" placeholder="رابط صورة / فيديو إضافي...">
+              <select id="edit-media-type-select">
+                <option value="image">صورة</option>
+                <option value="video">فيديو</option>
+              </select>
+              <button type="button" class="btn-add-url" id="btn-add-edit-url">إضافة</button>
+            </div>
+            <div class="media-items-list" id="edit-media-list"></div>
+          </div>
+        </div>
+
+        <!-- Active Toggle -->
+        <div class="limit-box">
+          <div class="limit-box-info">
+            <h4>عرض في الواجهة الرئيسية للزبائن</h4>
+            <p>حد أقصى 3 منشورات معروضة بالواجهة</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="edit-post-is-active">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:24px;">
+          <button type="submit" class="btn-primary" style="flex:1;">حفظ التعديلات</button>
+          <button type="button" class="btn-secondary" onclick="closeEditModal()">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

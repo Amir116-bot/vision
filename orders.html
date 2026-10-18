@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>لوحة الطلبات — VISION collection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+  <style>
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-confirmed { background: #d4edda; color: #155724; }
+    .status-shipped { background: #cce5ff; color: #004085; }
+    .status-delivered { background: #e2e3e5; color: #383d41; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    
+    .order-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .order-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .order-info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .order-info-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    
+    .order-info-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    
+    .order-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .order-actions select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Admin Auth Lock Screen (Password: vis2000is) -->
+  <div id="admin-auth-lock" class="admin-auth-overlay" style="display:none;">
+    <div class="admin-auth-box">
+      <div class="admin-auth-icon">🔒</div>
+      <img src="images/logo.jpg" alt="VISION Logo" class="admin-auth-logo">
+      <h2>منطقة الإدارة المحمية</h2>
+      <p>يرجى إدخال كود الدخول الخاص بالتاجر للمتابعة</p>
+      <form id="admin-auth-form" onsubmit="handleAdminLogin(event)">
+        <div class="auth-input-group">
+          <input type="password" id="admin-passcode" placeholder="أدخل الكود السري..." autocomplete="current-password" required>
+          <button type="button" class="btn-toggle-pass" onclick="togglePasscodeVisibility()" title="إظهار/إخفاء الكود">👁️</button>
+        </div>
+        <p id="auth-error-msg" class="auth-error-msg"></p>
+        <button type="submit" class="btn-auth-submit">دخول إلى لوحة الطلبات 🚀</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-container">
+    
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="brand-section">
+        <img src="images/logo.jpg" alt="VISION Logo" class="brand-logo">
+        <div class="brand-title">
+          <h1>VISION ORDERS</h1>
+          <span>لوحة استقبال وإدارة طلبات الزبائن</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="status-pill" id="orders-count-pill">إجمالي الطلبات: 0</span>
+        <a href="index.html" class="btn-preview">
+          <span>🏠</span> <span>العودة للمتجر</span>
+        </a>
+        <a href="admin.html" class="btn-preview">
+          <span>⚙️</span> <span>لوحة التاجر</span>
+        </a>
+        <button type="button" class="btn-preview" onclick="adminLogout()" title="تسجيل الخروج">
+          <span>🚪</span> <span>خروج</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Orders Content -->
+    <main class="admin-grid">
+      <section class="panel" style="grid-column: 1 / -1;">
+        <div class="panel-title">
+          <h2><span>📦</span> الطلبات الواردة</h2>
+          <span class="badge-count" id="total-orders-count">0 طلب</span>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+          <button class="btn-secondary" onclick="filterOrders('all')" style="padding: 8px 16px; font-size: 13px;">الكل</button>
+          <button class="btn-secondary" onclick="filterOrders('pending')" style="padding: 8px 16px; font-size: 13px;">قيد الانتظار</button>
+          <button class="btn-secondary" onclick="filterOrders('confirmed')" style="padding: 8px 16px; font-size: 13px;">مؤكد</button>
+          <button class="btn-secondary" onclick="filterOrders('shipped')" style="padding: 8px 16px; font-size: 13px;">تم الشحن</button>
+          <button class="btn-secondary" onclick="filterOrders('delivered')" style="padding: 8px 16px; font-size: 13px;">تم التوصيل</button>
+        </div>
+
+        <div class="posts-list" id="orders-list">
+          <div class="empty-state">
+            <span>⏳</span>
+            جاري تحميل الطلبات...
+          </div>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/orders.js"></script>
+</body>
+</html>
