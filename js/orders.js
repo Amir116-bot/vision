@@ -182,7 +182,7 @@ function renderOrdersList(orders) {
         </div>
         <div class="order-info-item">
           <span class="order-info-label">السعر</span>
-          <span class="order-info-value">${order.post_price ? order.post_price + '$' : 'غير محدد'}</span>
+          <span class="order-info-value">${order.post_price ? order.post_price + ' DZD' : 'غير محدد'}</span>
         </div>
         <div class="order-info-item">
           <span class="order-info-label">العنوان</span>
