@@ -387,7 +387,7 @@ async function handleOrderSubmit(e) {
       .from('orders')
       .insert([
         {
-          post_id: activeModalPost.id,
+          post_id: (activeModalPost.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeModalPost.id)) ? activeModalPost.id : null,
           post_title: activeModalPost.title,
           post_price: activeModalPost.price,
           customer_name: customerName,
