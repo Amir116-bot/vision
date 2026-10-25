@@ -1,6 +1,6 @@
 -- ==========================================================
 -- مشروع VISION collection — Retro Digi Watches
--- كود إعداد قاعدة البيانات لـ Supabase SQL Editor
+-- كود إعداد قاعدة البيانات لـ Supabase SQL Editor (مُصحح)
 -- ==========================================================
 
 -- 1. إنشاء جدول المنشورات (posts)
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- إذا كان الجدول موجوداً مسبقاً، نتأكد من وجود عمود tag
+-- التثبت من وجود عمود tag في حال وجود الجدول سابقاً
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -30,7 +30,7 @@ BEGIN
     END IF;
 END $$;
 
--- 2. إنشاء دالة ومحفز (Trigger) لتحديث حقل updated_at تلقائياً
+-- 2. دالة ومحفز (Trigger) لتحديث updated_at تلقائياً
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -45,47 +45,28 @@ CREATE TRIGGER set_posts_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_updated_at();
 
--- 3. تفعيل نظام حماية الصفوف (Row Level Security - RLS)
+-- 3. تفعيل وحماية الصفوف (RLS) لجدول المنشورات
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 
--- حذف السياسات القديمة إن وجدت لتجنب التكرار
 DROP POLICY IF EXISTS "Public can view active posts" ON public.posts;
 DROP POLICY IF EXISTS "Public can select all posts" ON public.posts;
 DROP POLICY IF EXISTS "Public can insert posts" ON public.posts;
 DROP POLICY IF EXISTS "Public can update posts" ON public.posts;
 DROP POLICY IF EXISTS "Public can delete posts" ON public.posts;
 
--- سياسة القراءة: متاحة للجميع (الزبائن والتاجر)
 CREATE POLICY "Public can select all posts"
-    ON public.posts
-    FOR SELECT
-    TO public
-    USING (true);
+    ON public.posts FOR SELECT TO public USING (true);
 
--- سياسة الإضافة: متاحة عبر المفتاح العام (anon) للوحة التاجر
 CREATE POLICY "Public can insert posts"
-    ON public.posts
-    FOR INSERT
-    TO public
-    WITH CHECK (true);
+    ON public.posts FOR INSERT TO public WITH CHECK (true);
 
--- سياسة التعديل: متاحة عبر المفتاح العام (anon) للوحة التاجر
 CREATE POLICY "Public can update posts"
-    ON public.posts
-    FOR UPDATE
-    TO public
-    USING (true)
-    WITH CHECK (true);
+    ON public.posts FOR UPDATE TO public USING (true) WITH CHECK (true);
 
--- سياسة الحذف: متاحة عبر المفتاح العام (anon) للوحة التاجر
 CREATE POLICY "Public can delete posts"
-    ON public.posts
-    FOR DELETE
-    TO public
-    USING (true);
+    ON public.posts FOR DELETE TO public USING (true);
 
--- 4. إدراج 3 منشورات أولية نموذجية للمتجر (يمكنك تعديلها أو حذفها لاحقاً من لوحة التاجر)
--- ملاحظة: إذا كان الجدول فارغاً فقط
+-- 4. إدراج بيانات اولية للمتجر عند الفراغ
 INSERT INTO public.posts (title, description, price, tag, media_urls, media_types, is_active)
 SELECT 
     'Sabrina Steel Edition',
@@ -122,7 +103,7 @@ WHERE NOT EXISTS (SELECT 1 FROM public.posts WHERE title = 'Chrono Matrix 2000')
 -- 5. إنشاء جدول الطلبات (orders)
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
+    post_id UUID REFERENCES public.posts(id) ON DELETE SET NULL,
     post_title TEXT NOT NULL,
     post_price NUMERIC(10, 2),
     customer_name TEXT NOT NULL,
@@ -130,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     customer_address TEXT NOT NULL,
     customer_city TEXT,
     customer_email TEXT,
-    selected_color TEXT NOT NULL,
+    selected_color TEXT DEFAULT 'الافتراضي',
     order_notes TEXT,
     status TEXT DEFAULT 'pending', -- pending, confirmed, shipped, delivered, cancelled
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -140,29 +121,23 @@ CREATE TABLE IF NOT EXISTS public.orders (
 -- تفعيل RLS لجدول الطلبات
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
--- سياسات جدول الطلبات
+-- سياسات جدول الطلبات المكتملة (شاملة الحذف)
 DROP POLICY IF EXISTS "Public can insert orders" ON public.orders;
 DROP POLICY IF EXISTS "Public can select orders" ON public.orders;
 DROP POLICY IF EXISTS "Public can update orders" ON public.orders;
+DROP POLICY IF EXISTS "Public can delete orders" ON public.orders;
 
 CREATE POLICY "Public can insert orders"
-    ON public.orders
-    FOR INSERT
-    TO public
-    WITH CHECK (true);
+    ON public.orders FOR INSERT TO public WITH CHECK (true);
 
 CREATE POLICY "Public can select orders"
-    ON public.orders
-    FOR SELECT
-    TO public
-    USING (true);
+    ON public.orders FOR SELECT TO public USING (true);
 
 CREATE POLICY "Public can update orders"
-    ON public.orders
-    FOR UPDATE
-    TO public
-    USING (true)
-    WITH CHECK (true);
+    ON public.orders FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+CREATE POLICY "Public can delete orders"
+    ON public.orders FOR DELETE TO public USING (true);
 
 -- محفز تحديث updated_at للطلبات
 DROP TRIGGER IF EXISTS set_orders_updated_at ON public.orders;

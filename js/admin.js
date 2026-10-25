@@ -4,12 +4,12 @@
  * Full Supabase CRUD, Media Manager, and Max-3 Storefront Enforcement
  */
 
+// Fallback for ADMIN_PASSCODE if not defined in window/supabase-config
+const ADMIN_PASSCODE = window.ADMIN_PASSCODE || 'vis2000is';
+
 // Available Local Photos from photos/ folder
 const AVAILABLE_PHOTOS = [
   'photos/Picsart_26-10-17_13-27-12-392.png',
-  'photos/5945201805845270471_120.jpg',
-  'photos/5945201805845270472_120.jpg',
-  'photos/5945201805845270473_120.jpg',
   'photos/5947419537978364127_121.jpg',
   'photos/5947419537978364128_121.jpg',
   'photos/5947419537978364129_121.jpg',
@@ -31,7 +31,6 @@ let selectedPickerPhotos = new Set();
 let pickerTarget = 'new'; // 'new' or 'edit'
 
 // Admin Passcode Protection
-// Helper to resolve asset paths if running in /admin/ subfolder
 function resolveAssetPath(path) {
   if (!path || path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path;
@@ -44,7 +43,8 @@ function resolveAssetPath(path) {
 }
 
 function checkAdminAuth() {
-  const isAuth = sessionStorage.getItem('vision_admin_auth') === ADMIN_PASSCODE || localStorage.getItem('vision_admin_auth') === ADMIN_PASSCODE;
+  const storedAuth = sessionStorage.getItem('vision_admin_auth') || localStorage.getItem('vision_admin_auth');
+  const isAuth = storedAuth === ADMIN_PASSCODE;
   const lockEl = document.getElementById('admin-auth-lock');
   if (lockEl) {
     if (isAuth) {
@@ -101,7 +101,7 @@ function adminLogout() {
   window.location.reload();
 }
 
-// DOM Elements
+// DOM Init
 document.addEventListener('DOMContentLoaded', () => {
   initAdmin();
 });
@@ -125,9 +125,9 @@ async function loadPosts() {
   postsListEl.innerHTML = '<div class="empty-state"><span>⏳</span>جاري تحميل المنشورات...</div>';
 
   try {
-    const client = window.SUPABASE_CONFIG.getClient();
+    const client = window.SUPABASE_CONFIG?.getClient ? window.SUPABASE_CONFIG.getClient() : null;
     if (!client) {
-      throw new Error('Supabase client not initialized');
+      throw new Error('لم يتم تهيئة اتصال Supabase بنجاح (فحص supabase-config.js)');
     }
 
     const { data, error } = await client
@@ -172,7 +172,7 @@ async function loadPosts() {
 }
 
 /**
- * Render Posts List
+ * Render Posts List with Safe Event Listeners
  */
 function renderPostsList(posts) {
   const postsListEl = document.getElementById('posts-list');
@@ -219,7 +219,7 @@ function renderPostsList(posts) {
       <div class="post-card-info">
         <h3>${escapeHtml(post.title)}</h3>
         <div class="post-card-meta">
-          <span class="meta-price">${post.price !== null && post.price !== undefined ? post.price + '$' : 'بدون سعر'}</span>
+          <span class="meta-price">${post.price !== null && post.price !== undefined ? post.price + 'DZD' : 'بدون سعر'}</span>
           <span class="meta-tag">${escapeHtml(post.tag || 'Retro digi')}</span>
           <span class="meta-media-count">
             ${imgCount > 0 ? `📷 ${imgCount} صور` : ''} 
@@ -231,15 +231,30 @@ function renderPostsList(posts) {
       <div class="post-card-controls">
         <button type="button" class="storefront-badge ${post.is_active ? 'active' : 'inactive'}" 
           title="انقر لتبديل العرض في واجهة الزبائن"
-          onclick="togglePostActive('${post.id}', ${post.is_active})">
+          data-action="toggle">
           ${post.is_active ? '● معروض بالواجهة' : '○ مخفي من الواجهة'}
         </button>
         <div class="post-actions">
-          <button type="button" class="btn-icon" title="تعديل المنشور" onclick="openEditModal('${post.id}')">✏️</button>
-          <button type="button" class="btn-icon danger" title="حذف المنشور" onclick="deletePost('${post.id}', '${escapeHtml(post.title)}')">🗑️</button>
+          <button type="button" class="btn-icon" title="تعديل المنشور" data-action="edit">✏️</button>
+          <button type="button" class="btn-icon danger" title="حذف المنشور" data-action="delete">🗑️</button>
         </div>
       </div>
     `;
+
+    // Safe Event Listeners Binding
+    const toggleBtn = card.querySelector('[data-action="toggle"]');
+    const editBtn = card.querySelector('[data-action="edit"]');
+    const deleteBtn = card.querySelector('[data-action="delete"]');
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => togglePostActive(post.id, post.is_active));
+    }
+    if (editBtn) {
+      editBtn.addEventListener('click', () => openEditModal(post.id));
+    }
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => deletePost(post.id, post.title));
+    }
 
     postsListEl.appendChild(card);
   });
@@ -249,13 +264,11 @@ function renderPostsList(posts) {
  * Setup Event Listeners
  */
 function setupEventListeners() {
-  // New Post Form Submit
   const postForm = document.getElementById('new-post-form');
   if (postForm) {
     postForm.addEventListener('submit', handleNewPostSubmit);
   }
 
-  // Add Media by URL (New Post)
   const addUrlBtn = document.getElementById('btn-add-url');
   if (addUrlBtn) {
     addUrlBtn.addEventListener('click', () => {
@@ -275,12 +288,18 @@ function setupEventListeners() {
     });
   }
 
-  // File Upload (New Post)
+  // File Upload (Device) with Compression Check
   const fileInput = document.getElementById('file-upload-input');
   if (fileInput) {
     fileInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       files.forEach(file => {
+        // Prevent huge file uploads via DataURL
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit check
+          alert(`حجم الملف "${file.name}" كبير جداً (${(file.size / (1024*1024)).toFixed(1)}MB). يرجى اختيار ملف أقل من 5 ميجابايت.`);
+          return;
+        }
+
         const isVideo = file.type.startsWith('video');
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -296,7 +315,6 @@ function setupEventListeners() {
     });
   }
 
-  // Photo Picker Modal triggers
   const openPickerBtn = document.getElementById('btn-open-picker');
   if (openPickerBtn) {
     openPickerBtn.addEventListener('click', () => openPhotoPicker('new'));
@@ -307,19 +325,16 @@ function setupEventListeners() {
     openEditPickerBtn.addEventListener('click', () => openPhotoPicker('edit'));
   }
 
-  // Confirm photo picker selection
   const confirmPickerBtn = document.getElementById('btn-confirm-picker');
   if (confirmPickerBtn) {
     confirmPickerBtn.addEventListener('click', confirmPhotoPickerSelection);
   }
 
-  // Edit Post Form Submit
   const editForm = document.getElementById('edit-post-form');
   if (editForm) {
     editForm.addEventListener('submit', handleEditPostSubmit);
   }
 
-  // Add Media by URL (Edit Post)
   const addEditUrlBtn = document.getElementById('btn-add-edit-url');
   if (addEditUrlBtn) {
     addEditUrlBtn.addEventListener('click', () => {
@@ -350,14 +365,13 @@ async function handleNewPostSubmit(e) {
   const priceRaw = document.getElementById('post-price').value.trim();
   const tag = document.getElementById('post-tag').value.trim() || 'Retro digi';
   const description = document.getElementById('post-desc').value.trim();
-  const isActive = document.getElementById('post-is-active').checked;
+  let isActive = document.getElementById('post-is-active').checked;
 
   if (!title) {
     alert('يرجى كتابة اسم المنشور / الساعة');
     return;
   }
 
-  // Parse price as numeric
   let price = null;
   if (priceRaw) {
     price = parseFloat(priceRaw.replace(/[^0-9.]/g, ''));
@@ -372,7 +386,7 @@ async function handleNewPostSubmit(e) {
     return;
   }
 
-  // Enforce 3-post limit on storefront
+  // Enforce Max 3 Active Posts Limit
   if (isActive) {
     const currentActiveCount = allPosts.filter(p => p.is_active).length;
     if (currentActiveCount >= 3) {
@@ -383,10 +397,10 @@ async function handleNewPostSubmit(e) {
         return;
       }
       document.getElementById('post-is-active').checked = false;
+      isActive = false;
     }
   }
 
-  const finalIsActive = document.getElementById('post-is-active').checked;
   const mediaUrls = currentNewMedia.map(m => m.url);
   const mediaTypes = currentNewMedia.map(m => m.type);
 
@@ -396,7 +410,7 @@ async function handleNewPostSubmit(e) {
 
   try {
     const client = window.SUPABASE_CONFIG.getClient();
-    const { data, error } = await client
+    const { error } = await client
       .from('posts')
       .insert([
         {
@@ -405,7 +419,7 @@ async function handleNewPostSubmit(e) {
           description,
           media_urls: mediaUrls,
           media_types: mediaTypes,
-          is_active: finalIsActive,
+          is_active: isActive,
           tag
         }
       ]);
@@ -414,12 +428,10 @@ async function handleNewPostSubmit(e) {
 
     alert('✅ تم نشر المنشور بنجاح!');
     
-    // Reset Form
     e.target.reset();
     currentNewMedia = [];
     renderMediaItemsList('new-media-list', currentNewMedia);
 
-    // Reload Posts
     await loadPosts();
 
   } catch (err) {
@@ -437,7 +449,6 @@ async function handleNewPostSubmit(e) {
 async function togglePostActive(id, currentStatus) {
   const newStatus = !currentStatus;
 
-  // Enforce Max 3 limit when activating
   if (newStatus) {
     const activeCount = allPosts.filter(p => p.is_active && p.id !== id).length;
     if (activeCount >= 3) {
@@ -502,7 +513,6 @@ function openEditModal(id) {
   document.getElementById('edit-post-desc').value = post.description || '';
   document.getElementById('edit-post-is-active').checked = !!post.is_active;
 
-  // Prepare editing media
   const mediaUrls = Array.isArray(post.media_urls) ? post.media_urls : [];
   const mediaTypes = Array.isArray(post.media_types) ? post.media_types : [];
   editingMedia = mediaUrls.map((url, idx) => ({
@@ -555,7 +565,6 @@ async function handleEditPostSubmit(e) {
     return;
   }
 
-  // Check 3-post limit if isActive is being set to true
   if (isActive) {
     const activeCount = allPosts.filter(p => p.is_active && p.id !== editingPostId).length;
     if (activeCount >= 3) {
@@ -620,14 +629,19 @@ function renderMediaItemsList(containerId, mediaArray) {
       card.innerHTML = `
         <video src="${resolvedUrl}#t=0.5" muted></video>
         <span class="media-item-badge">🎥 فيديو</span>
-        <button type="button" class="media-item-remove" title="حذف" onclick="removeMediaItem('${containerId}', ${index})">✕</button>
+        <button type="button" class="media-item-remove" title="حذف" data-index="${index}">✕</button>
       `;
     } else {
       card.innerHTML = `
         <img src="${resolvedUrl}" alt="media" onerror="this.src='${fallbackWatch}'">
         <span class="media-item-badge">📷 صورة</span>
-        <button type="button" class="media-item-remove" title="حذف" onclick="removeMediaItem('${containerId}', ${index})">✕</button>
+        <button type="button" class="media-item-remove" title="حذف" data-index="${index}">✕</button>
       `;
+    }
+
+    const removeBtn = card.querySelector('.media-item-remove');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => removeMediaItem(containerId, index));
     }
 
     container.appendChild(card);
@@ -645,7 +659,7 @@ function removeMediaItem(containerId, index) {
 }
 
 /**
- * Photo Picker Modal (Pick from 14 local watch photos)
+ * Photo Picker Modal
  */
 function openPhotoPicker(target) {
   pickerTarget = target;

@@ -120,7 +120,7 @@ function renderCards(posts) {
       </span>`;
     }
 
-    const priceText = post.price !== null && post.price !== undefined ? `${post.price}$` : '';
+    const priceText = post.price !== null && post.price !== undefined ? `${post.price} DZD` : '';
     const tagText = post.tag || 'Retro digi';
 
     card.innerHTML = `
@@ -164,7 +164,7 @@ function openZoomModal(post) {
 
   // Title, Price, Description, Tag
   document.getElementById('modal-title').textContent = post.title || 'VISION Retro Digi';
-  document.getElementById('modal-price').textContent = post.price ? `${post.price}$` : 'N/A';
+  document.getElementById('modal-price').textContent = post.price ? `${post.price} DZD` : 'N/A';
   document.getElementById('modal-desc').textContent = post.description || 'No description provided.';
   
   const tagEl = document.getElementById('modal-tag');
@@ -183,6 +183,9 @@ function openZoomModal(post) {
 
   // Show Modal with Spring-Zoom animation
   backdrop.classList.add('active');
+  backdrop.scrollTop = 0;
+  const details = document.querySelector('.zoom-details');
+  if (details) details.scrollTop = 0;
   document.body.style.overflow = 'hidden';
 }
 

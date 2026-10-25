@@ -4,15 +4,16 @@
  * Fetch, Display, and Update Customer Orders
  */
 
+// Global Admin Passcode Fallback
+const ADMIN_PASSCODE = window.ADMIN_PASSCODE || 'vis2000is';
+
 // State
 let allOrders = [];
 let currentFilter = 'all';
 
-// Admin Passcode Protection
-const ADMIN_PASSCODE = 'vis2000is';
-
 function checkAdminAuth() {
-  const isAuth = sessionStorage.getItem('vision_admin_auth') === ADMIN_PASSCODE || localStorage.getItem('vision_admin_auth') === ADMIN_PASSCODE;
+  const storedAuth = sessionStorage.getItem('vision_admin_auth') || localStorage.getItem('vision_admin_auth');
+  const isAuth = storedAuth === ADMIN_PASSCODE;
   const lockEl = document.getElementById('admin-auth-lock');
   if (lockEl) {
     if (isAuth) {
@@ -69,7 +70,7 @@ function adminLogout() {
   window.location.reload();
 }
 
-// DOM Elements
+// DOM Init
 document.addEventListener('DOMContentLoaded', () => {
   initOrders();
 });
@@ -91,9 +92,9 @@ async function loadOrders() {
   ordersListEl.innerHTML = '<div class="empty-state"><span>⏳</span>جاري تحميل الطلبات...</div>';
 
   try {
-    const client = window.SUPABASE_CONFIG.getClient();
+    const client = window.SUPABASE_CONFIG?.getClient ? window.SUPABASE_CONFIG.getClient() : null;
     if (!client) {
-      throw new Error('Supabase client not initialized');
+      throw new Error('لم يتم تهيئة اتصال Supabase بنجاح');
     }
 
     const { data, error } = await client
@@ -105,7 +106,6 @@ async function loadOrders() {
 
     allOrders = data || [];
 
-    // Update Header Pill
     if (statusPillEl) {
       statusPillEl.textContent = `إجمالي الطلبات: ${allOrders.length}`;
     }
@@ -114,7 +114,8 @@ async function loadOrders() {
       countBadgeEl.textContent = `${allOrders.length} طلب`;
     }
 
-    renderOrdersList(allOrders);
+    // Preserve Current Active Filter
+    filterOrders(currentFilter);
 
   } catch (err) {
     console.error('Error fetching orders:', err);
@@ -131,7 +132,7 @@ async function loadOrders() {
 }
 
 /**
- * Render Orders List
+ * Render Orders List with Safe Event Binding
  */
 function renderOrdersList(orders) {
   const ordersListEl = document.getElementById('orders-list');
@@ -141,8 +142,8 @@ function renderOrdersList(orders) {
     ordersListEl.innerHTML = `
       <div class="empty-state">
         <span>📦</span>
-        <p>لا توجد طلبات حتى الآن.</p>
-        <small>ستظهر الطلبات هنا عندما يقوم الزبائن بطلب المنتجات.</small>
+        <p>لا توجد طلبات لتطابق هذا العرض.</p>
+        <small>ستظهر الطلبات هنا فور تقديمها من الواجهة الرئيسية.</small>
       </div>
     `;
     return;
@@ -177,7 +178,7 @@ function renderOrdersList(orders) {
         </div>
         <div class="order-info-item">
           <span class="order-info-label">اللون المختار</span>
-          <span class="order-info-value">${escapeHtml(order.selected_color)}</span>
+          <span class="order-info-value">${escapeHtml(order.selected_color || 'الافتراضي')}</span>
         </div>
         <div class="order-info-item">
           <span class="order-info-label">السعر</span>
@@ -199,26 +200,37 @@ function renderOrdersList(orders) {
         ` : ''}
         ${order.order_notes ? `
         <div class="order-info-item" style="grid-column: 1 / -1;">
-          <span class="order-info-label">ملاحظات</span>
+          <span class="order-info-label">ملاحظات الزبون</span>
           <span class="order-info-value">${escapeHtml(order.order_notes)}</span>
         </div>
         ` : ''}
       </div>
 
       <div class="order-actions">
-        <select onchange="updateOrderStatus('${order.id}', this.value)">
+        <select class="status-select">
           <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>قيد الانتظار</option>
           <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>مؤكد</option>
           <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>تم الشحن</option>
           <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>تم التوصيل</option>
           <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>ملغي</option>
         </select>
-        <a href="tel:${order.customer_phone}" class="btn-secondary" style="padding: 8px 16px; font-size: 13px;">
+        <a href="tel:${escapeHtml(order.customer_phone)}" class="btn-secondary" style="padding: 8px 16px; font-size: 13px;">
           📞 اتصال
         </a>
-        <button type="button" class="btn-icon danger" onclick="deleteOrder('${order.id}', '${escapeHtml(order.customer_name)}')" title="حذف الطلب">🗑️</button>
+        <button type="button" class="btn-icon danger" title="حذف الطلب" data-action="delete">🗑️</button>
       </div>
     `;
+
+    // Safe Event Binding
+    const selectEl = card.querySelector('.status-select');
+    const deleteBtn = card.querySelector('[data-action="delete"]');
+
+    if (selectEl) {
+      selectEl.addEventListener('change', (e) => updateOrderStatus(order.id, e.target.value));
+    }
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => deleteOrder(order.id, order.customer_name));
+    }
 
     ordersListEl.appendChild(card);
   });
@@ -269,11 +281,25 @@ async function deleteOrder(id, customerName) {
 }
 
 /**
- * Filter Orders by Status
+ * Filter Orders by Status & Highlight Active Filter Button
  */
 function filterOrders(status) {
   currentFilter = status;
-  
+
+  // Visual active button state styling
+  const filterBtns = document.querySelectorAll('.panel button[onclick^="filterOrders"]');
+  filterBtns.forEach(btn => {
+    if (btn.getAttribute('onclick').includes(`'${status}'`)) {
+      btn.style.background = 'var(--primary, #000)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'var(--primary, #000)';
+    } else {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }
+  });
+
   if (status === 'all') {
     renderOrdersList(allOrders);
   } else {
@@ -293,18 +319,19 @@ function getStatusText(status) {
     'delivered': 'تم التوصيل',
     'cancelled': 'ملغي'
   };
-  return statusMap[status] || status;
+  return statusMap[status] || status || 'قيد الانتظار';
 }
 
 /**
- * Format Date
+ * Format Date (Gregorian Arabic Format)
  */
 function formatDate(dateString) {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  return date.toLocaleDateString('ar-SA', {
+  if (isNaN(date.getTime())) return '-';
+  return date.toLocaleString('ar-EG', {
     year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
