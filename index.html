@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="auto"> <!-- تم تعديل اللغة لتتناسب مع محتوى المتجر -->
+<html lang="ar" dir="auto">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="متجر فيجن - وجهتك الأولى للأناقة. تسوق أحدث صيحات الملابس والساعات الفاخرة."> <!-- إضافة وصف لـ SEO -->
+  <meta name="description" content="متجر فيجن - وجهتك الأولى للأناقة. تسوق أحدث صيحات الملابس والساعات الفاخرة.">
   <title>Vision Store — Elegant Clothes & Watches</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@
       <ul>
         <li>Explore</li>
         <li><a href="#collections">Collections</a></li>
-        <li><a href="about.html">About</a></li> <!-- تم ربط الزر بصفحة about.html -->
+        <li><a href="about.html">About</a></li>
       </ul>
       <img class="logo" src="images/logo.jpg" alt="VISION collection">
       <div class="nav-actions">
@@ -97,35 +97,9 @@
       <span>Bestsellers</span>
     </div>
 
-    <!-- Dynamic Cards Container (Up to 3 Posts from Supabase) -->
+    <!-- Dynamic Cards Container (Loaded exclusively via Supabase through js/app.js) -->
     <div class="cards" id="dynamic-cards">
-      <!-- Cards loaded dynamically via js/app.js -->
-      <article class="card">
-        <div class="frame">
-          <span class="tag">Retro digi</span>
-          <img src="images/sabrina.png" alt="Sabrina watch, black dial">
-        </div>
-        <div class="row">
-          <div>
-            <h3>Sabrina</h3>
-            <small>780 DZD</small>
-          </div>
-          <button type="button" class="btn light" onclick="window.location.href='learn-more.html'">Learn more</button>
-        </div>
-      </article>
-      <article class="card">
-        <div class="frame">
-          <span class="tag">Retro digi</span>
-          <img src="images/naomi.jpg" alt="Naomi watch, red dial">
-        </div>
-        <div class="row">
-          <div>
-            <h3>Naomi</h3>
-            <small>640 DZD</small>
-          </div>
-          <button type="button" class="btn light" onclick="window.location.href='learn-more.html'">Learn more</button>
-        </div>
-      </article>
+      <p style="text-align: center; color: var(--text-muted); width: 100%; padding: 20px;">جاري تحميل المنتجات...</p>
     </div>
   </section>
 
@@ -135,7 +109,7 @@
       <h2>Built on the 2000s.<br>Made for now.</h2>
       <p>Our team loves the early digital age: pixel grids, chrome and glowing screens. We mix that look with the discipline of classic watchmaking.</p>
       <p>Each VISION watch pairs a retro digital dial with a steel case you can wear every day.</p>
-      <a class="btn" href="about.html">More about us</a> <!-- تم ربط الزر بصفحة about.html -->
+      <a class="btn" href="about.html">More about us</a>
       <span class="arrow">→</span>
     </div>
     <div class="stage">
@@ -158,7 +132,6 @@
           <img src="images/logo.jpg" alt="VISION / Nexa Digital">
         </div>
         <p class="nexa-brand-desc" dir="rtl">
-          <!-- تم تعديل الوصف ليناسب متجر ملابس وساعات -->
           متجر فيجن: وجهتك الأولى للأناقة، نقدم تشكيلة راقية من الملابس والساعات التي تعكس ذوقك الرفيع.
         </p>
       </div>
@@ -248,7 +221,7 @@
         <form id="order-form" class="order-form">
           <div class="order-form-header">
             <h4>معلومات الطلب</h4>
-            <span class="order-badge-pill">🚚 الدفع عند الاستلام</span>
+            <span class="order-badge-pill">🚚 الدفع عند الاستلاستلام</span>
           </div>
           
           <div class="form-group">
@@ -289,7 +262,7 @@
 
           <div class="form-group">
             <label for="customer-city">المدينة</label>
-            <input type="text" id="customer-city" name="customer_city" placeholder="مثال: الرياض">
+            <input type="text" id="customer-city" name="customer_city" placeholder="مثال: الجزائر">
           </div>
 
           <div class="form-group">
@@ -318,6 +291,6 @@
   <!-- Supabase JS & Application Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-config.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=1.1"></script>
 </body>
 </html>
