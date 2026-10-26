@@ -184,6 +184,8 @@ function openZoomModal(post) {
   // Show Modal with Spring-Zoom animation
   backdrop.classList.add('active');
   backdrop.scrollTop = 0;
+  const modalEl = document.querySelector('.zoom-modal');
+  if (modalEl) modalEl.scrollTop = 0;
   const details = document.querySelector('.zoom-details');
   if (details) details.scrollTop = 0;
   document.body.style.overflow = 'hidden';
@@ -427,4 +429,21 @@ function escapeHtml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+
+/**
+ * Smooth Scroll to Order Form (Mobile UX)
+ */
+function scrollToOrderForm() {
+  const form = document.getElementById('order-form');
+  const nameInput = document.getElementById('customer-name');
+  if (form) {
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (nameInput) {
+      setTimeout(() => {
+        try { nameInput.focus({ preventScroll: true }); } catch (err) {}
+      }, 350);
+    }
+  }
 }
